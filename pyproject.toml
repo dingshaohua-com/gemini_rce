@@ -1,0 +1,10 @@
+[project]
+name = "gemini-rce"
+version = "0.1.0"
+description = "Gemini web 接口获取项目"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.128.0",
+    "uvicorn>=0.40.0",
+]

@@ -1,0 +1,11 @@
+# 1. 忽略 reports 目录下的所有内容
+report/*
+
+# 2. 但是不要忽略 reports 目录下的 readme.md
+!report/readme.md
+
+.idea
+
+.venv
+
+__pycache__
