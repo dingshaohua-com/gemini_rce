@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Gemini API</title>
+</head>
+
+<body class="h-screen">
+    <div id="app"
+        class="h-full flex items-center justify-center p-5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+        <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl w-full max-w-md px-8 py-6">
+            <!-- 头部 -->
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center gap-3">
+                    <div class="p-2 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl">
+                        <div class="text-3xl">🤖</div>
+                    </div>
+                    <h1
+                        class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        Gemini API
+                    </h1>
+                </div>
+            </div>
+
+            <!-- 登录区域 -->
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-medium text-gray-700 w-12 text-right flex-shrink-0">账号</label>
+                    <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">👤</span>
+                        <input type="text" v-model="form.username"
+                            class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                            placeholder="请输入用户名" autofocus>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <label class="text-sm font-medium text-gray-700 w-12 text-right flex-shrink-0">密码</label>
+                    <div class="relative flex-1">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔒</span>
+                        <input type="password" v-model="form.password"
+                            class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                            placeholder="请输入密码">
+                    </div>
+                </div>
+
+                <button type="button" @click="handleLogin" 
+                    class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl text-base mt-4 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100">
+                    <!-- <span v-if="isLoading" class="inline-flex items-center gap-2">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+                                fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        登录中...
+                    </span> -->
+                    <span v-else>登 录</span>
+                </button>
+            </div>
+        </div>
+        <Toaster/>
+    </div>
+
+    <script src="/web/lib/tailwindcss.js"></script>
+    <script src="https://unpkg.com/vue-sonner"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+        const { toast, Toaster } = VueSonner; // 从全局对象获取
+        const { createApp, ref, reactive } = Vue;
+
+        createApp({
+            components: {Toaster},
+            setup() {
+                const form = reactive({
+                    username: '',
+                    password: ''
+                });
+                const errorMessage = ref('');
+                const isLoading = ref(false);
+
+                const handleLogin = async (event) => {
+                    console.log(898989);
+
+                    console.log('handleLogin 被调用');
+                    toast.success('操作成功！', {
+                      description: '这是一个漂亮的 Sonner 通知。',
+                    });
+                    // errorMessage.value = '';
+                    // isLoading.value = true;
+                    // const { data } = await axios.post('/api/auth/login', form);
+                    // window.location.href = '/web';
+                    // isLoading.value = false;
+                };
+                return {
+                    form,
+                    errorMessage,
+                    isLoading,
+                    handleLogin
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

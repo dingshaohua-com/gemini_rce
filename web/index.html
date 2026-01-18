@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API 配置</title>
+</head>
+
+<body class="m-h-screen w-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+    <div id="app" class="max-w-4xl mx-auto">
+        <div class="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8">
+            <!-- 头部 -->
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl">
+                        <div class="text-3xl">🤖</div>
+                    </div>
+                    <h1 class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        Gemini API 配置
+                    </h1>
+                </div>
+                <a href="/admin/logout" class="text-indigo-600 hover:text-purple-600 font-medium text-sm transition-colors">
+                    退出登录
+                </a>
+            </div>
+            <p class="text-gray-600 text-sm mb-6">配置 Google Gemini 的认证信息，保存后即可调用 API</p>
+
+            <!-- 获取说明 -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-4 mb-6 text-sm">
+                <p class="font-semibold text-gray-800 mb-2">获取方法：</p>
+                <p class="text-gray-700">1. 打开 <a href="https://gemini.google.com" target="_blank" class="text-blue-600 hover:underline">gemini.google.com</a> 并登录</p>
+                <p class="text-gray-700">2. F12 → 网络 → 发送内容到聊天 → 点击任意请求 → Copy 请求头内完整cookie</p>
+            </div>
+
+            <!-- 表单 -->
+            <form @submit.prevent="handleSubmit">
+                <!-- Cookie 配置 -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 pb-3 mb-4 border-b-2 border-gray-200">
+                        <span class="text-xl">🔑</span>
+                        <h2 class="text-lg font-semibold text-gray-800">Cookie 配置</h2>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            完整 Cookie <span class="text-red-500">*</span>
+                        </label>
+                        <textarea v-model="form.fullCookie" @input="parseCookieInput" rows="6" required
+                            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all resize-y"
+                            placeholder="粘贴从浏览器复制的完整 Cookie 字符串，系统会自动解析所需字段和 Token..."></textarea>
+
+                        <!-- 解析结果 -->
+                        <div v-if="parsedFields.length > 0" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-blue-900 mb-3">✅ 已解析的字段：</h4>
+                            <div class="space-y-2">
+                                <div v-for="field in parsedFields" :key="field.name" class="text-xs text-gray-700">
+                                    <span class="font-medium">{{ field.name }}:</span>
+                                    <span class="text-green-600 font-mono ml-2">{{ field.value }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型 ID 配置 -->
+                <div class="mb-6">
+                    <div class="flex items-center gap-2 pb-3 mb-4 border-b-2 border-gray-200">
+                        <span class="text-xl">🎯</span>
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            模型 ID 配置
+                            <span class="text-xs text-gray-500 font-normal ml-2">(可选，如果模型切换失效请更新)</span>
+                        </h2>
+                    </div>
+
+                    <div class="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 mb-4 text-sm">
+                        <p class="font-semibold text-gray-800 mb-1">获取方法：</p>
+                        <p class="text-gray-700">F12 → Network → 在 Gemini 中切换模型发送消息 → 找到请求头 <code class="bg-amber-100 px-1.5 py-0.5 rounded text-xs">x-goog-ext-525001261-jspb</code> → 复制整个数组值粘贴到下方输入框</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            快速解析 <span class="text-xs text-gray-500">(粘贴请求头数组自动提取 ID)</span>
+                        </label>
+                        <input type="text" v-model="modelIdParser" @input="parseModelIdInput"
+                            class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                            placeholder='粘贴如: [1,null,null,null,"56fdd199312815e2",null,null,0,[4],null,null,2]'>
+
+                        <!-- 解析的模型 ID -->
+                        <div v-if="parsedModelId" class="mt-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 class="text-sm font-semibold text-green-900 mb-3">✅ 已提取的模型 ID：</h4>
+                            <div class="text-xs mb-3">
+                                提取到的 ID: <span class="text-green-600 font-mono font-semibold">{{ parsedModelId }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" @click="fillModelId('flash')"
+                                    class="px-3 py-1.5 bg-indigo-500 text-white text-xs rounded-lg hover:bg-indigo-600 transition-colors">
+                                    填入极速版
+                                </button>
+                                <button type="button" @click="fillModelId('pro')"
+                                    class="px-3 py-1.5 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-colors">
+                                    填入Pro版
+                                </button>
+                                <button type="button" @click="fillModelId('thinking')"
+                                    class="px-3 py-1.5 bg-pink-500 text-white text-xs rounded-lg hover:bg-pink-600 transition-colors">
+                                    填入思考版
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">极速版 (Flash) ID</label>
+                            <input type="text" v-model="form.modelIdFlash"
+                                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                                placeholder="56fdd199312815e2">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Pro 版 ID</label>
+                            <input type="text" v-model="form.modelIdPro"
+                                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                                placeholder="e6fa609c3fa255c0">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">思考版 (Thinking) ID</label>
+                            <input type="text" v-model="form.modelIdThinking"
+                                class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all"
+                                placeholder="e051ce1aa80aa576">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <button type="submit" :disabled="isLoading"
+                    class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-3.5 px-6 rounded-xl text-base hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100">
+                    <span v-if="isLoading" class="inline-flex items-center gap-2">
+                        <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        保存中...
+                    </span>
+                    <span v-else>💾 保存配置</span>
+                </button>
+            </form>
+
+            <!-- 状态消息 -->
+            <div v-if="statusMessage.text" :class="statusMessage.type === 'success' ? 'bg-green-50 border-green-500 text-green-700' : 'bg-red-50 border-red-500 text-red-700'"
+                class="mt-5 border-l-4 rounded-lg px-4 py-3 text-sm" v-html="statusMessage.text">
+            </div>
+
+            <!-- API 调用信息 -->
+            <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-indigo-500 rounded-lg p-6">
+                <h3 class="text-base font-semibold text-gray-800 mb-4">📡 API 调用信息</h3>
+                <div class="space-y-2 text-sm mb-4">
+                    <p><span class="font-medium">Base URL:</span> <strong class="text-indigo-600">{{ apiInfo.baseUrl }}</strong></p>
+                    <p><span class="font-medium">API Key:</span> <strong class="text-indigo-600">{{ apiInfo.apiKey }}</strong></p>
+                    <p><span class="font-medium">可用模型:</span> <code class="bg-white px-2 py-0.5 rounded text-xs">gemini-3.0-flash</code> | <code class="bg-white px-2 py-0.5 rounded text-xs">gemini-3.0-pro</code> | <code class="bg-white px-2 py-0.5 rounded text-xs">gemini-3.0-flash-thinking</code></p>
+                </div>
+
+                <h4 class="text-sm font-semibold text-gray-800 mt-5 mb-2">💬 文本对话</h4>
+                <pre class="bg-white rounded-lg p-4 text-xs overflow-x-auto border border-gray-200">from openai import OpenAI
+client = OpenAI(base_url="{{ apiInfo.baseUrl }}", api_key="{{ apiInfo.apiKey }}")
+
+response = client.chat.completions.create(
+    model="gemini-3.0-flash",  # 或 gemini-3.0-pro / gemini-3.0-flash-thinking
+    messages=[{"role": "user", "content": "你好"}]
+)
+print(response.choices[0].message.content)</pre>
+
+                <h4 class="text-sm font-semibold text-gray-800 mt-5 mb-2">🖼️ 图片识别</h4>
+                <pre class="bg-white rounded-lg p-4 text-xs overflow-x-auto border border-gray-200">import base64
+from openai import OpenAI
+client = OpenAI(base_url="{{ apiInfo.baseUrl }}", api_key="{{ apiInfo.apiKey }}")
+
+# 读取本地图片
+with open("image.png", "rb") as f:
+    img_b64 = base64.b64encode(f.read()).decode()
+
+response = client.chat.completions.create(
+    model="gemini-3.0-flash",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "请描述这张图片"},
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}}
+        ]
+    }]
+)
+print(response.choices[0].message.content)</pre>
+
+                <h4 class="text-sm font-semibold text-gray-800 mt-5 mb-2">🌊 流式响应</h4>
+                <pre class="bg-white rounded-lg p-4 text-xs overflow-x-auto border border-gray-200">stream = client.chat.completions.create(
+    model="gemini-3.0-flash",
+    messages=[{"role": "user", "content": "写一首诗"}],
+    stream=True
+)
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="", flush=True)</pre>
+
+                <h4 class="text-sm font-semibold text-gray-800 mt-5 mb-2">📷 示例图片</h4>
+                <p class="text-xs text-gray-600 mb-3">以下是 image.png 示例图片，可用于测试图片识别功能（点击放大）：</p>
+                <img src="/web/img/image.png" alt="示例图片" @click="showModal = true" @error="imageError = true"
+                    v-if="!imageError"
+                    class="max-w-xs rounded-lg border border-gray-300 cursor-pointer hover:shadow-lg transition-shadow">
+                <p v-else class="text-xs text-gray-400">（示例图片不可用，请确保 image.png 文件存在）</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片放大模态框 -->
+    <!-- <div v-if="showModal" @click="showModal = false"
+        class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center cursor-pointer p-5">
+        <img src="/web/img/image.png" alt="示例图片" class="max-w-[90%] max-h-[90%] rounded-lg shadow-2xl">
+        <span class="absolute top-5 right-8 text-white text-4xl hover:text-gray-300 transition-colors">&times;</span>
+    </div> -->
+
+    <script src="/web/utils/index.js"></script>
+    <script src="/web/lib/tailwindcss.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const form = reactive({
+                    fullCookie: cookieStr,
+                    modelIdFlash: '',
+                    modelIdPro: '',
+                    modelIdThinking: ''
+                });
+
+                const modelIdParser = ref('');
+                const parsedModelId = ref('');
+                const parsedFields = ref([]);
+                const isLoading = ref(false);
+                const statusMessage = reactive({ text: '', type: '' });
+                const showModal = ref(false);
+                const imageError = ref(false);
+
+                // API 信息（从服务器模板注入）
+                const apiInfo = reactive({
+                    baseUrl: '',
+                    apiKey: ''
+                });
+
+
+                const cookieDisplayNames = {
+                    'SECURE_1PSID': '__Secure-1PSID',
+                    'SECURE_1PSIDTS': '__Secure-1PSIDTS',
+                    'SAPISID': 'SAPISID',
+                    'SID': 'SID',
+                    'HSID': 'HSID',
+                    'SSID': 'SSID',
+                    'APISID': 'APISID'
+                };
+
+
+                // 解析 Cookie 输入
+                const parseCookieInput = () => {
+                    const parsed = cookieHeloer.parseCookie(form.fullCookie);
+                    console.log(8989, parsed);
+                    
+                    parsedFields.value = Object.entries(cookieDisplayNames)
+                        .filter(([key]) => parsed[key])
+                        .map(([key, name]) => ({
+                            name,
+                            value: parsed[key].length > 30 ? parsed[key].substring(0, 30) + '...' : parsed[key]
+                        }));
+                };
+
+                // 解析模型 ID
+                const parseModelId = (input) => {
+                    try {
+                        const arr = JSON.parse(input);
+                        if (Array.isArray(arr) && arr.length > 4 && typeof arr[4] === 'string') {
+                            return arr[4];
+                        }
+                    } catch (e) {
+                        const match = input.match(/["']([a-f0-9]{16})["']/i);
+                        if (match) return match[1];
+                    }
+                    return null;
+                };
+
+                // 解析模型 ID 输入
+                const parseModelIdInput = () => {
+                    parsedModelId.value = parseModelId(modelIdParser.value) || '';
+                };
+
+                // 填入模型 ID
+                const fillModelId = (type) => {
+                    if (type === 'flash') form.modelIdFlash = parsedModelId.value;
+                    else if (type === 'pro') form.modelIdPro = parsedModelId.value;
+                    else if (type === 'thinking') form.modelIdThinking = parsedModelId.value;
+                };
+
+                // 加载配置
+                const loadConfig = async () => {
+                    try {
+                        const { data } = await axios.get('/admin/config', { withCredentials: true });
+                        if (data.FULL_COOKIE) {
+                            form.fullCookie = data.FULL_COOKIE;
+                            parseCookieInput();
+                        }
+                        if (data.MODEL_IDS) {
+                            form.modelIdFlash = data.MODEL_IDS.flash || '';
+                            form.modelIdPro = data.MODEL_IDS.pro || '';
+                            form.modelIdThinking = data.MODEL_IDS.thinking || '';
+                        }
+                    } catch (err) {
+                        console.log('加载配置失败:', err);
+                    }
+                };
+
+                // 提交表单
+                const handleSubmit = async () => {
+                    statusMessage.text = '';
+                    isLoading.value = true;
+
+                    try {
+                        const payload = {
+                            FULL_COOKIE: form.fullCookie,
+                            MODEL_IDS: {
+                                flash: form.modelIdFlash || '',
+                                pro: form.modelIdPro || '',
+                                thinking: form.modelIdThinking || ''
+                            }
+                        };
+
+                        const { data } = await axios.post('/admin/save', payload, {
+                            headers: { 'Content-Type': 'application/json' },
+                            withCredentials: true
+                        });
+
+                        if (data.success) {
+                            statusMessage.type = 'success';
+                            statusMessage.text = `✅ ${data.message}<br><br>💡 <strong>配置已生效，无需重启服务！</strong>`;
+                        } else {
+                            statusMessage.type = 'error';
+                            statusMessage.text = `❌ ${data.message}`;
+                        }
+                    } catch (err) {
+                        if (err.response?.status === 401) {
+                            window.location.href = '/admin/login';
+                            return;
+                        }
+                        statusMessage.type = 'error';
+                        statusMessage.text = `❌ 保存失败: ${err.response?.data?.message || err.message}`;
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                // ESC 关闭模态框
+                const handleKeydown = (e) => {
+                    if (e.key === 'Escape') showModal.value = false;
+                };
+
+                onMounted(async () => {
+                    // 从配置 API 获取基本信息
+                    try {
+                        const { data } = await axios.get('/api/user/config', { withCredentials: true });
+                        console.log(11111, data)
+                        if (data.API_KEY) apiInfo.apiKey = data.API_KEY;
+                        if (data.PORT) apiInfo.baseUrl = `http://localhost:${data.PORT}/v1`;
+                    } catch (err) {
+                        // 使用默认值
+                        apiInfo.baseUrl = `${window.location.protocol}//${window.location.host}/v1`;
+                        apiInfo.apiKey = 'your-api-key';
+                    }
+
+                    // loadConfig();
+                    // document.addEventListener('keydown', handleKeydown);
+                });
+
+                return {
+                    form,
+                    modelIdParser,
+                    parsedModelId,
+                    parsedFields,
+                    isLoading,
+                    statusMessage,
+                    showModal,
+                    imageError,
+                    apiInfo,
+                    parseCookieInput,
+                    parseModelIdInput,
+                    fillModelId,
+                    handleSubmit
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
