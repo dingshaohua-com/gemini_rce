@@ -5,6 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - Gemini API</title>
+    <script type="importmap">
+    {
+        "imports": {
+             "axios": "https://esm.sh/axios"
+            "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+            "vue-toastification": "https://esm.sh/vue-toastification@2.0.0-rc.5",
+           
+        }
+    }
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/vue-toastification@2.0.0-rc.5/dist/index.css" />
 </head>
 
 <body class="h-screen">
@@ -46,7 +57,7 @@
                     </div>
                 </div>
 
-                <button type="button" @click="handleLogin" 
+                <button type="button" @click="handleLogin"
                     class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-3 px-6 rounded-xl text-base mt-4 hover:shadow-xl hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100">
                     <!-- <span v-if="isLoading" class="inline-flex items-center gap-2">
                         <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
@@ -58,25 +69,22 @@
                         </svg>
                         登录中...
                     </span> -->
-                    <span v-else>登 录</span>
+                    <span>登 录</span>
                 </button>
             </div>
         </div>
-        <Toaster/>
     </div>
 
     <script src="/web/lib/tailwindcss.js"></script>
-    <script src="https://unpkg.com/vue-sonner"></script>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="module">
+        import axios from 'axios'
+        import { createApp, ref, reactive } from 'vue';
+        import Toast, { useToast } from 'vue-toastification';
 
-    <script>
-        const { toast, Toaster } = VueSonner; // 从全局对象获取
-        const { createApp, ref, reactive } = Vue;
-
-        createApp({
-            components: {Toaster},
+        const app = createApp({
             setup() {
+                const toast = useToast();
+
                 const form = reactive({
                     username: '',
                     password: ''
@@ -85,12 +93,7 @@
                 const isLoading = ref(false);
 
                 const handleLogin = async (event) => {
-                    console.log(898989);
-
-                    console.log('handleLogin 被调用');
-                    toast.success('操作成功！', {
-                      description: '这是一个漂亮的 Sonner 通知。',
-                    });
+                    toast.success('操作成功！这是一个漂亮的通知。');
                     // errorMessage.value = '';
                     // isLoading.value = true;
                     // const { data } = await axios.post('/api/auth/login', form);
@@ -104,7 +107,24 @@
                     handleLogin
                 };
             }
-        }).mount('#app');
+        });
+
+        app.use(Toast, {
+            position: "top-right",
+            timeout: 3000,
+            closeOnClick: true,
+            pauseOnFocusLoss: true,
+            pauseOnHover: true,
+            draggable: true,
+            draggablePercent: 0.6,
+            showCloseButtonOnHover: false,
+            hideProgressBar: false,
+            closeButton: "button",
+            icon: true,
+            rtl: false
+        });
+
+        app.mount('#app');
     </script>
 </body>
 
